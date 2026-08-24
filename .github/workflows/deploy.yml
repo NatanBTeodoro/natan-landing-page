@@ -1,0 +1,56 @@
+name: Deploy para o Github Pages
+
+on:
+  push:
+    branches: [main]
+
+  permissions:
+    content: read
+    pages: write
+    id-token: write
+
+
+  concurrency:
+    group: pages
+    cancel-in-progress: false
+
+  jobs: 
+    build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o código
+        uses: actions/setup@v5
+
+      - name: Preparar node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar as dependencias
+        run: npm ci
+
+      - name: Verificar codigo
+        run: npm run lint
+
+      - name: Buildar para produção
+        run: npm run build
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+
+      - name: Empacotar e enviar o artefato
+        uses: actions/upload-pages-artifacts@v3
+        with:
+          path: dist
+
+    deploy:
+      needs: build
+      runs-on: ubuntu-latest
+      environment:
+        name: github-pages
+        url: ${{ step.deployment.outputs.page_url }}
+      steps:
+        - name: Publicar no Github pages
+          id: deployment
+          uses: actions/deploy-pages@v4
